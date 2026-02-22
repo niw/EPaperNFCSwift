@@ -81,29 +81,20 @@ extension DeviceInfo: ISO7816APDUResponse {
         let colorPaletteValue = data[1]
         let colorPalette = try DisplayType.ColorPalette(tlvValue: colorPaletteValue)
 
-        var pixelWidth = (Int(data[5]) << 8) | Int(data[6])
+        let pixelWidth = (Int(data[5]) << 8) | Int(data[6])
 
         let height = (Int(data[3]) << 8) | Int(data[4])
-        var pixelHeight = height / colorPalette.bitsPerPixel
+        let pixelHeight = height / colorPalette.bitsPerPixel
 
         guard let data = tlv[0xA1], data.count == 7 else {
             throw ISO7816APDUCommandError.invalidResponsePayload
         }
 
         // TODO: This might be wrong, assumed this is `scanType`.
-        // TODO: It's unknown that we can use this for 2.9-inch 4-Color or 4.2-inch 2-Color devices.
+        // TODO: It's unknown how 4.2-inch 2-Color devices report orientation.
+        // The protocol suggests it should be `.flipped`, but no TLV value maps to it yet.
         let orientationValue = data[0]
-        var orientation = try DisplayType.Orientation(tlvValue: orientationValue)
-
-        if pixelWidth > pixelHeight {
-            swap(&pixelWidth, &pixelHeight)
-
-            // TODO: If we can know this condition from the TLV flags, use it.
-            // 4.2-inch 2-Color device would be this condition.
-            if orientation == .normal {
-                orientation = .flipped
-            }
-        }
+        let orientation = try DisplayType.Orientation(tlvValue: orientationValue)
 
         displayType = DisplayType(
             colorPalette: colorPalette,
